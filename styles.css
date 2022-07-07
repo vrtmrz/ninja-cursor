@@ -1,0 +1,82 @@
+.x-cursor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: var(--cursor-height);
+    width: 8px;
+    display: inline-block;
+    user-select: none;
+    background: var(--text-normal);
+    transform: translate3d(var(--cursor-x2), var(--cursor-y2), 0);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.x-cursor0 {
+    animation: a1 75ms cubic-bezier(0.34, 1.36, 0.64, 1) 0s both;
+}
+
+.x-cursor1 {
+    animation: a2 75ms cubic-bezier(0.34, 1.36, 0.64, 1) 0s both;
+}
+
+:root {
+    --cursor-x1: "0px";
+    --cursor-x2: "0px";
+    --cursor-y1: "0px";
+    --cursor-y2: "0px";
+    --cursor-height: 18px;
+
+}
+
+@keyframes a1 {
+    0% {
+        transform: translate3d(var(--cursor-x1), var(--cursor-y1), 0);
+        background-color: var(--text-normal);
+        opacity: 0;
+    }
+
+    4% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 0.95;
+    }
+
+    90% {
+        transform: translate3d(var(--cursor-x2), var(--cursor-y2), 0);
+        background-color: var(--text-normal);
+        opacity: 0.9;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes a2 {
+    0% {
+        transform: translate3d(var(--cursor-x1), var(--cursor-y1), 0);
+        background-color: var(--text-normal);
+        opacity: 0;
+    }
+
+    4% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 0.95;
+    }
+
+    90% {
+        transform: translate3d(var(--cursor-x2), var(--cursor-y2), 0);
+        background-color: var(--text-normal);
+        opacity: 0.9;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
