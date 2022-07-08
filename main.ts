@@ -1,15 +1,17 @@
-import { Plugin } from 'obsidian';
-
+import { Plugin } from "obsidian";
 
 let lastPos: DOMRect | null = null;
 let styleCount = 0;
 export default class NinjaCursorPlugin extends Plugin {
+	wrapperElement: HTMLDivElement;
 	cursorElement: HTMLSpanElement;
 
 	async onload() {
+		this.wrapperElement = document.createElement("div");
+		this.wrapperElement.addClass("cursorWrapper");
 		this.cursorElement = document.createElement("span");
-
-		document.body.appendChild(this.cursorElement);
+		this.wrapperElement.appendChild(this.cursorElement);
+		document.body.appendChild(this.wrapperElement);
 		const root = document.documentElement;
 		root.style.setProperty("--cursor-x1", `${0}`);
 		root.style.setProperty("--cursor-y1", `${0}`);
@@ -20,27 +22,28 @@ export default class NinjaCursorPlugin extends Plugin {
 		const moveCursor = () => {
 			const selection = window.getSelection();
 			if (!selection) {
-				console.log("Could not find selection")
+				console.log("Could not find selection");
 				return;
 			}
+			if (selection.rangeCount == 0) return;
 			const range = selection.getRangeAt(0);
-			let rect = range?.getBoundingClientRect()
+			let rect = range?.getBoundingClientRect();
 			if (!rect) {
-				console.log("Could not find range")
+				console.log("Could not find range");
 				return;
 			}
 			if (rect.x == 0 && rect.y == 0) {
-				const textRange = document.createRange()
-				textRange.setStart(range.startContainer, range.startOffset)
-				textRange.setEndAfter(range.startContainer)
-				let textRect = textRange.getBoundingClientRect()
+				const textRange = document.createRange();
+				textRange.setStart(range.startContainer, range.startOffset);
+				textRange.setEndAfter(range.startContainer);
+				let textRect = textRange.getBoundingClientRect();
 				if (textRect.x == 0 && textRect.y == 0) {
-					textRange.setStart(range.endContainer, range.endOffset - 1)
-					textRange.setEnd(range.endContainer, range.endOffset)
+					textRange.setStart(range.endContainer, range.endOffset - 1);
+					textRange.setEnd(range.endContainer, range.endOffset);
 					const textRectx = textRange.getClientRects();
 					const txx = textRectx.item(textRectx.length - 1);
 					if (!txx) {
-						console.log("Could not found")
+						console.log("Could not found");
 						return;
 					}
 					textRect = txx;
@@ -61,6 +64,27 @@ export default class NinjaCursorPlugin extends Plugin {
 				return;
 			}
 			styleCount = (styleCount + 1) % 2;
+			const dx = rect.x - lastPos.x;
+			const dy = lastPos.y - rect.y;
+			const cursorDragAngle = Math.atan2(dx, dy) + Math.PI / 2;
+			const cursorDragDistance = Math.sqrt(dx * dx + dy * dy);
+
+			const cursorDragHeight =
+				Math.abs(Math.sin(cursorDragAngle)) * 8 +
+				Math.abs(Math.cos(cursorDragAngle)) * rect.height;
+			const cursorDragWidth = cursorDragDistance;
+			root.style.setProperty(
+				"--cursor-drag-height",
+				`${cursorDragHeight}px`
+			);
+			root.style.setProperty(
+				"--cursor-drag-width",
+				`${cursorDragWidth}px`
+			);
+			root.style.setProperty(
+				"--cursor-drag-angle",
+				`${cursorDragAngle}rad`
+			);
 			root.style.setProperty("--cursor-height", `${rect.height}px`);
 			root.style.setProperty("--cursor-x1", `${lastPos.x}px`);
 			root.style.setProperty("--cursor-y1", `${lastPos.y}px`);
@@ -74,28 +98,22 @@ export default class NinjaCursorPlugin extends Plugin {
 				window.requestAnimationFrame((time) => {
 					this.cursorElement.addClass(`x-cursor${styleCount}`);
 					lastPos = rect;
-				})
-			})
-		}
+				});
+			});
+		};
 		this.registerDomEvent(window, "keydown", (ev) => {
 			moveCursor();
-
-		})
+		});
 		this.registerDomEvent(window, "mousedown", () => {
 			moveCursor();
-		})
+		});
 	}
-
 
 	onunload() {
-		document.body.removeChild(this.cursorElement);
+		document.body.removeChild(this.wrapperElement);
 	}
 
-	async loadSettings() {
+	async loadSettings() {}
 
-	}
-
-	async saveSettings() {
-
-	}
+	async saveSettings() {}
 }
