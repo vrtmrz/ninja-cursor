@@ -2,9 +2,9 @@
 
 The plugin which enhance cursor visiblity.
 
-![ninjacursor](https://user-images.githubusercontent.com/45774780/177688736-8dacd265-d75f-4ca2-8201-aa8c0a8b7a84.gif)
+![ninjacursor](https://user-images.githubusercontent.com/45774780/177967934-ffcb90b0-2330-4c58-a0dd-2defcf2d7b9e.gif)
 
-Note : This is the clone implementation of the cool product that I saw on the twitter. But I missed to fav and forgot what is was. I will find that again, and obtain permission. But if you know something, please inform me!!!
+Note : This was made with great respect to the "nonsense" piece of [Neovide](https://github.com/neovide/neovide).
 
 ## How to install
 
