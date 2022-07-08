@@ -104,6 +104,9 @@ export default class NinjaCursorPlugin extends Plugin {
 		this.registerDomEvent(window, "keydown", (ev) => {
 			moveCursor();
 		});
+		this.registerDomEvent(window, "keyup", (ev) => {
+			moveCursor();
+		});
 		this.registerDomEvent(window, "mousedown", () => {
 			moveCursor();
 		});
