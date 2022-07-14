@@ -1,6 +1,6 @@
 {
 	"name": "ninja-cursor",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "The plugin which enhance cursor visiblity.",
 	"main": "main.js",
 	"scripts": {

@@ -1,26 +1,31 @@
-import { Plugin } from "obsidian";
+import { App, Plugin } from "obsidian";
 
-let lastPos: DOMRect | null = null;
-let styleCount = 0;
-export default class NinjaCursorPlugin extends Plugin {
-	wrapperElement: HTMLDivElement;
+
+class NinjaCursorForWindow {
+
+	lastPos: DOMRect | null = null;
+	styleCount = 0;
+	wrapperElement: HTMLDivElement | null;
 	cursorElement: HTMLSpanElement;
+	app: App;
+	bufferedDocument: Document;
+	bufferedWindow: Window;
 
-	async onload() {
-		this.wrapperElement = document.createElement("div");
+	constructor(app: App, aw: Window, ad: Document, registerDomEvent: CallableFunction) {
+		this.app = app;
+		// buffering
+		this.bufferedWindow = aw;
+		this.bufferedDocument = ad;
+		this.wrapperElement = ad.createElement("div");
 		this.wrapperElement.addClass("cursorWrapper");
-		this.cursorElement = document.createElement("span");
+		this.cursorElement = ad.createElement("span");
 		this.wrapperElement.appendChild(this.cursorElement);
-		document.body.appendChild(this.wrapperElement);
-		const root = document.documentElement;
-		root.style.setProperty("--cursor-x1", `${0}`);
-		root.style.setProperty("--cursor-y1", `${0}`);
-		root.style.setProperty("--cursor-x2", `${0}`);
-		root.style.setProperty("--cursor-y2", `${0}`);
+		ad.body.appendChild(this.wrapperElement);
 		this.cursorElement.addClass("x-cursor");
+		const root = ad.documentElement;
 
 		const moveCursor = () => {
-			const selection = window.getSelection();
+			const selection = aw.getSelection();
 			if (!selection) {
 				console.log("Could not find selection");
 				return;
@@ -33,7 +38,7 @@ export default class NinjaCursorPlugin extends Plugin {
 				return;
 			}
 			if (rect.x == 0 && rect.y == 0) {
-				const textRange = document.createRange();
+				const textRange = ad.createRange();
 				textRange.setStart(range.startContainer, range.startOffset);
 				textRange.setEndAfter(range.startContainer);
 				let textRect = textRange.getBoundingClientRect();
@@ -56,16 +61,16 @@ export default class NinjaCursorPlugin extends Plugin {
 				}
 				rect = textRect;
 			}
-			if (lastPos == null) {
-				lastPos = rect;
+			if (this.lastPos == null) {
+				this.lastPos = rect;
 				return;
 			}
-			if (lastPos.x == rect.x && lastPos.y == rect.y) {
+			if (this.lastPos.x == rect.x && this.lastPos.y == rect.y) {
 				return;
 			}
-			styleCount = (styleCount + 1) % 2;
-			const dx = rect.x - lastPos.x;
-			const dy = lastPos.y - rect.y;
+			this.styleCount = (this.styleCount + 1) % 2;
+			const dx = rect.x - this.lastPos.x;
+			const dy = this.lastPos.y - rect.y;
 			const cursorDragAngle = Math.atan2(dx, dy) + Math.PI / 2;
 			const cursorDragDistance = Math.sqrt(dx * dx + dy * dy);
 
@@ -86,37 +91,88 @@ export default class NinjaCursorPlugin extends Plugin {
 				`${cursorDragAngle}rad`
 			);
 			root.style.setProperty("--cursor-height", `${rect.height}px`);
-			root.style.setProperty("--cursor-x1", `${lastPos.x}px`);
-			root.style.setProperty("--cursor-y1", `${lastPos.y}px`);
+			root.style.setProperty("--cursor-x1", `${this.lastPos.x}px`);
+			root.style.setProperty("--cursor-y1", `${this.lastPos.y}px`);
 			root.style.setProperty("--cursor-x2", `${rect.x}px`);
 			root.style.setProperty("--cursor-y2", `${rect.y}px`);
 			this.cursorElement.removeClass("x-cursor0");
 			this.cursorElement.removeClass("x-cursor1");
 			this.cursorElement.getAnimations().forEach((anim) => anim.cancel());
 
-			window.requestAnimationFrame((time) => {
-				window.requestAnimationFrame((time) => {
-					this.cursorElement.addClass(`x-cursor${styleCount}`);
-					lastPos = rect;
-				});
+			aw.requestAnimationFrame((time) => {
+				this.cursorElement.addClass(`x-cursor${this.styleCount}`);
+				this.lastPos = rect;
 			});
 		};
-		this.registerDomEvent(window, "keydown", (ev) => {
+
+
+		registerDomEvent(aw, "keydown", () => {
 			moveCursor();
 		});
-		this.registerDomEvent(window, "keyup", (ev) => {
+		registerDomEvent(aw, "keyup", () => {
 			moveCursor();
 		});
-		this.registerDomEvent(window, "mousedown", () => {
+		registerDomEvent(aw, "mousedown", () => {
 			moveCursor();
 		});
+		registerDomEvent(aw, "mouseup", () => {
+			moveCursor();
+		});
+		registerDomEvent(aw, "touchend", () => {
+			moveCursor();
+		});
+		registerDomEvent(aw, "touchstart", () => {
+			moveCursor();
+		});
+	}
+
+	unload() {
+		if (this.wrapperElement) {
+			const doc = this.wrapperElement.doc;
+			if (doc) {
+				doc.body.removeChild(this.wrapperElement);
+				this.wrapperElement = null;
+			}
+		}
+	}
+
+
+}
+export default class NinjaCursorPlugin extends Plugin {
+
+	Cursors: NinjaCursorForWindow[] = [];
+
+	async onload() {
+
+
+		this.registerEvent(this.app.workspace.on("window-open", (win) => {
+			console.log("Open by window-open")
+			const exist = this.Cursors.find(e => e.bufferedWindow == win.win);
+			if (!exist) {
+				const w = new NinjaCursorForWindow(app, win.win, win.doc, this.registerDomEvent.bind(this));
+				this.Cursors.push(w);
+			}
+		}));
+		this.registerEvent(this.app.workspace.on("window-close", (win) => {
+			const target = this.Cursors.find(e => e.bufferedWindow == win.win);
+			if (target) {
+				target.unload();
+				this.Cursors.remove(target);
+			}
+		}));
+
+		console.log("Open by init")
+		const w = new NinjaCursorForWindow(app, window, document, this.registerDomEvent.bind(this));
+		this.Cursors.push(w);
 	}
 
 	onunload() {
-		document.body.removeChild(this.wrapperElement);
+		for (const v of this.Cursors) {
+			v.unload();
+		}
 	}
 
-	async loadSettings() {}
+	async loadSettings() { }
 
-	async saveSettings() {}
+	async saveSettings() { }
 }
