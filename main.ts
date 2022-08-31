@@ -23,8 +23,30 @@ class NinjaCursorForWindow {
 		ad.body.appendChild(this.wrapperElement);
 		this.cursorElement.addClass("x-cursor");
 		const root = ad.documentElement;
-
-		const moveCursor = () => {
+		let datumTop = 0;
+		let datumElement: HTMLElement;
+		let cursorVisibility = false;
+		const moveCursor = (e?: Event, noAnimate?: boolean) => {
+			if (e && e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.tagName == "INPUT")) {
+				// If it caused by clicking an element and it is editable.
+				datumElement = e.target;
+				if (!cursorVisibility) {
+					root.style.setProperty("--cursor-visibility", `visible`);
+					cursorVisibility = true;
+				}
+			} else if (e != null) {
+				// If it caused by clicking an element but it is not editable.
+				if (cursorVisibility) {
+					root.style.setProperty("--cursor-visibility", `hidden`);
+					cursorVisibility = false;
+				}
+				return;
+			}
+			if (e && e.target instanceof HTMLElement) {
+				// Memo datum element for scroll.
+				datumElement = e.target;
+			}
+			datumTop = datumElement.getBoundingClientRect().top;
 			const selection = aw.getSelection();
 			if (!selection) {
 				console.log("Could not find selection");
@@ -45,15 +67,15 @@ class NinjaCursorForWindow {
 				if (textRect.x == 0 && textRect.y == 0) {
 					textRange.setStart(range.endContainer, range.endOffset - 1);
 					textRange.setEnd(range.endContainer, range.endOffset);
-					const textRectx = textRange.getClientRects();
-					const txx = textRectx.item(textRectx.length - 1);
-					if (!txx) {
+					const textRects = textRange.getClientRects();
+					const tempRect = textRects.item(textRects.length - 1);
+					if (!tempRect) {
 						console.log("Could not found");
 						return;
 					}
-					textRect = txx;
-					textRect.x = txx.right;
-					textRect.y = txx.bottom - txx.height;
+					textRect = tempRect;
+					textRect.x = tempRect.right;
+					textRect.y = tempRect.bottom - tempRect.height;
 				}
 
 				if (textRect.x == 0 && textRect.y == 0) {
@@ -78,6 +100,7 @@ class NinjaCursorForWindow {
 				Math.abs(Math.sin(cursorDragAngle)) * 8 +
 				Math.abs(Math.cos(cursorDragAngle)) * rect.height;
 			const cursorDragWidth = cursorDragDistance;
+
 			root.style.setProperty(
 				"--cursor-drag-height",
 				`${cursorDragHeight}px`
@@ -92,13 +115,19 @@ class NinjaCursorForWindow {
 			);
 			root.style.setProperty("--cursor-height", `${rect.height}px`);
 			root.style.setProperty("--cursor-x1", `${this.lastPos.x}px`);
-			root.style.setProperty("--cursor-y1", `${this.lastPos.y}px`);
+			root.style.setProperty("--cursor-y1src", `${this.lastPos.y}px`);
 			root.style.setProperty("--cursor-x2", `${rect.x}px`);
-			root.style.setProperty("--cursor-y2", `${rect.y}px`);
+			root.style.setProperty("--cursor-y2src", `${rect.y}px`);
+			root.style.setProperty("--cursor-offset-y", `${0}px`);
+			if (noAnimate) {
+				this.lastPos = rect;
+				return;
+			}
 			this.cursorElement.removeClass("x-cursor0");
 			this.cursorElement.removeClass("x-cursor1");
 			this.cursorElement.getAnimations().forEach((anim) => anim.cancel());
 
+			datumTop = datumElement.getBoundingClientRect().top;
 			aw.requestAnimationFrame((time) => {
 				this.cursorElement.addClass(`x-cursor${this.styleCount}`);
 				this.lastPos = rect;
@@ -106,23 +135,30 @@ class NinjaCursorForWindow {
 		};
 
 
-		registerDomEvent(aw, "keydown", () => {
-			moveCursor();
-		});
-		registerDomEvent(aw, "keyup", () => {
-			moveCursor();
-		});
-		registerDomEvent(aw, "mousedown", () => {
-			moveCursor();
-		});
-		registerDomEvent(aw, "mouseup", () => {
-			moveCursor();
-		});
-		registerDomEvent(aw, "touchend", () => {
-			moveCursor();
-		});
-		registerDomEvent(aw, "touchstart", () => {
-			moveCursor();
+		const supportVIMMode = true;
+		const eventNames = ["keydown", "mousedown", "touchend", ...(supportVIMMode ? ["keyup", "mouseup", "touchstart"] : [])];
+		for (const event of eventNames) {
+			registerDomEvent(aw, event, (ev: Event) => {
+				moveCursor(ev);
+			});
+		}
+		// Handles scroll till scroll is finish.
+		const applyWheelScroll = (last?: number | boolean) => {
+			requestAnimationFrame(() => {
+				if (datumElement) {
+					const curTop = datumElement.getBoundingClientRect().top;
+					const diff = curTop - datumTop;
+					root.style.setProperty("--cursor-offset-y", `${diff}px`);
+					if (last === false || last != diff) {
+						requestAnimationFrame(() => applyWheelScroll(diff));
+					} else if (last == diff) {
+						moveCursor(undefined, true);
+					}
+				}
+			});
+		}
+		registerDomEvent(aw, "wheel", (e: WheelEvent) => {
+			applyWheelScroll(false);
 		});
 	}
 
