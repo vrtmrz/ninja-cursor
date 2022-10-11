@@ -142,20 +142,25 @@ class NinjaCursorForWindow {
 				moveCursor(ev);
 			});
 		}
+		let triggered = false;
 		// Handles scroll till scroll is finish.
 		const applyWheelScroll = (last?: number | boolean) => {
-			requestAnimationFrame(() => {
-				if (datumElement) {
-					const curTop = datumElement.getBoundingClientRect().top;
-					const diff = curTop - datumTop;
-					root.style.setProperty("--cursor-offset-y", `${diff}px`);
-					if (last === false || last != diff) {
-						requestAnimationFrame(() => applyWheelScroll(diff));
-					} else if (last == diff) {
-						moveCursor(undefined, true);
+			if (!triggered) {
+				requestAnimationFrame(() => {
+					if (datumElement) {
+						const curTop = datumElement.getBoundingClientRect().top;
+						const diff = curTop - datumTop;
+						root.style.setProperty("--cursor-offset-y", `${diff}px`);
+						if (last === false || last != diff) {
+							requestAnimationFrame(() => applyWheelScroll(diff));
+						} else if (last == diff) {
+							moveCursor(undefined, true);
+						}
 					}
-				}
-			});
+					triggered = false;
+				});
+				triggered = true;
+			}
 		}
 		registerDomEvent(aw, "wheel", (e: WheelEvent) => {
 			applyWheelScroll(false);
@@ -179,7 +184,6 @@ export default class NinjaCursorPlugin extends Plugin {
 	Cursors: NinjaCursorForWindow[] = [];
 
 	async onload() {
-
 
 		this.registerEvent(this.app.workspace.on("window-open", (win) => {
 			console.log("Open by window-open")
