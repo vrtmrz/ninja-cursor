@@ -1,5 +1,10 @@
 import { App, Plugin } from "obsidian";
 
+function waitForReflowComplete() {
+	return new Promise((res) => {
+		window.requestAnimationFrame(() => res(true));
+	})
+}
 
 class NinjaCursorForWindow {
 
@@ -26,7 +31,16 @@ class NinjaCursorForWindow {
 		let datumTop = 0;
 		let datumElement: HTMLElement;
 		let cursorVisibility = false;
-		const moveCursor = (e?: Event, noAnimate?: boolean) => {
+		let processing = false;
+		const moveCursor = async (e?: Event, noAnimate?: boolean) => {
+			if (processing) {
+				return;
+			}
+			processing = true;
+			await __moveCursor(e, noAnimate);
+			processing = false;
+		}
+		const __moveCursor = async (e?: Event, noAnimate?: boolean) => {
 			if (e && e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.tagName == "INPUT")) {
 				// If it caused by clicking an element and it is editable.
 				datumElement = e.target;
@@ -46,6 +60,7 @@ class NinjaCursorForWindow {
 				// Memo datum element for scroll.
 				datumElement = e.target;
 			}
+			await waitForReflowComplete();
 			datumTop = datumElement.getBoundingClientRect().top;
 			const selection = aw.getSelection();
 			if (!selection) {
@@ -125,7 +140,7 @@ class NinjaCursorForWindow {
 			}
 			this.cursorElement.removeClass("x-cursor0");
 			this.cursorElement.removeClass("x-cursor1");
-			this.cursorElement.getAnimations().forEach((anim) => anim.cancel());
+			// this.cursorElement.getAnimations().forEach((anim) => anim.cancel());
 
 			datumTop = datumElement.getBoundingClientRect().top;
 			aw.requestAnimationFrame((time) => {
