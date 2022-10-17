@@ -1,3 +1,21 @@
+:root {
+    --cursor-x1: "0px";
+    --cursor-x2: "0px";
+    --cursor-y1src: "0px";
+    --cursor-y2src: "0px";
+    --cursor-offset-y: "0px";
+    --cursor-drag-distance: "0px";
+    --cursor-drag-angle: "0deg";
+    --cursor-drag-width: "0px";
+    --cursor-drag-height: "0px";
+
+    --cursor-height: 18px;
+    --cursor-y1: calc(var(--cursor-y1src) + var(--cursor-offset-y));
+    --cursor-y2: calc(var(--cursor-y2src) + var(--cursor-offset-y));
+    --cursor-visibility: "hidden";
+    /* --cursor-margin-height: calc(var(--header-height)); */
+}
+
 .x-cursor {
     position: relative;
     top: 0;
@@ -34,23 +52,7 @@
     animation: a2 75ms cubic-bezier(0.34, 1.26, 0.84, 1) 0s both;
 }
 
-:root {
-    --cursor-x1: "0px";
-    --cursor-x2: "0px";
-    --cursor-y1src: "0px";
-    --cursor-y2src: "0px";
-    --cursor-offset-y: "0px";
-    --cursor-drag-distance: "0px";
-    --cursor-drag-angle: "0deg";
-    --cursor-drag-width: "0px";
-    --cursor-drag-height: "0px";
 
-    --cursor-height: 18px;
-    --cursor-y1: calc(var(--cursor-y1src) + var(--cursor-offset-y));
-    --cursor-y2: calc(var(--cursor-y2src) + var(--cursor-offset-y));
-    --cursor-visibility: "hidden";
-    /* --cursor-color: --text-normal; */
-}
 
 .cursorWrapper {
     display: block;
@@ -59,7 +61,7 @@
     pointer-events: none;
     background-color: transparent;
     position: fixed;
-    top: 0;
+    top: var(--header-height);
     left: 0;
     right: 0;
     bottom: 0;
@@ -69,7 +71,7 @@
 
 @keyframes a1 {
     0% {
-        transform: translate3d(var(--cursor-x1), var(--cursor-y1), 0);
+        transform: translate3d(var(--cursor-x1), calc(var(--cursor-y1) - var(--header-height)), 0);
         background-color: var(--text-normal);
         opacity: 0;
     }
@@ -83,7 +85,7 @@
     }
 
     90% {
-        transform: translate3d(var(--cursor-x2), var(--cursor-y2), 0);
+        transform: translate3d(var(--cursor-x2), calc(var(--cursor-y2) - var(--header-height)), 0);
         background-color: var(--text-normal);
         opacity: 0.9;
     }
@@ -95,7 +97,7 @@
 
 @keyframes a2 {
     0% {
-        transform: translate3d(var(--cursor-x1), var(--cursor-y1), 0);
+        transform: translate3d(var(--cursor-x1), calc(var(--cursor-y1) - var(--header-height)), 0);
         background-color: var(--text-normal);
         opacity: 0;
     }
@@ -109,7 +111,7 @@
     }
 
     90% {
-        transform: translate3d(var(--cursor-x2), var(--cursor-y2), 0);
+        transform: translate3d(var(--cursor-x2), calc(var(--cursor-y2) - var(--header-height)), 0);
         background-color: var(--text-normal);
         opacity: 0.9;
     }
