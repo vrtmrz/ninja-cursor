@@ -27,7 +27,7 @@ class NinjaCursorForWindow {
 		this.wrapperElement.appendChild(this.cursorElement);
 		ad.body.appendChild(this.wrapperElement);
 		this.cursorElement.addClass("x-cursor");
-		const root = ad.documentElement;
+		const styleRoot = this.wrapperElement;
 		let datumTop = 0;
 		let datumElement: HTMLElement;
 		let cursorVisibility = false;
@@ -45,13 +45,13 @@ class NinjaCursorForWindow {
 				// If it caused by clicking an element and it is editable.
 				datumElement = e.target;
 				if (!cursorVisibility) {
-					root.style.setProperty("--cursor-visibility", `visible`);
+					styleRoot.style.setProperty("--cursor-visibility", `visible`);
 					cursorVisibility = true;
 				}
 			} else if (e != null) {
 				// If it caused by clicking an element but it is not editable.
 				if (cursorVisibility) {
-					root.style.setProperty("--cursor-visibility", `hidden`);
+					styleRoot.style.setProperty("--cursor-visibility", `hidden`);
 					cursorVisibility = false;
 				}
 				return;
@@ -116,24 +116,24 @@ class NinjaCursorForWindow {
 				Math.abs(Math.cos(cursorDragAngle)) * rect.height;
 			const cursorDragWidth = cursorDragDistance;
 
-			root.style.setProperty(
+			styleRoot.style.setProperty(
 				"--cursor-drag-height",
 				`${cursorDragHeight}px`
 			);
-			root.style.setProperty(
+			styleRoot.style.setProperty(
 				"--cursor-drag-width",
 				`${cursorDragWidth}px`
 			);
-			root.style.setProperty(
+			styleRoot.style.setProperty(
 				"--cursor-drag-angle",
 				`${cursorDragAngle}rad`
 			);
-			root.style.setProperty("--cursor-height", `${rect.height}px`);
-			root.style.setProperty("--cursor-x1", `${this.lastPos.x}px`);
-			root.style.setProperty("--cursor-y1src", `${this.lastPos.y}px`);
-			root.style.setProperty("--cursor-x2", `${rect.x}px`);
-			root.style.setProperty("--cursor-y2src", `${rect.y}px`);
-			root.style.setProperty("--cursor-offset-y", `${0}px`);
+			styleRoot.style.setProperty("--cursor-height", `${rect.height}px`);
+			styleRoot.style.setProperty("--cursor-x1", `${this.lastPos.x}px`);
+			styleRoot.style.setProperty("--cursor-y1src", `${this.lastPos.y}px`);
+			styleRoot.style.setProperty("--cursor-x2", `${rect.x}px`);
+			styleRoot.style.setProperty("--cursor-y2src", `${rect.y}px`);
+			styleRoot.style.setProperty("--cursor-offset-y", `${0}px`);
 			if (noAnimate) {
 				this.lastPos = rect;
 				return;
@@ -165,7 +165,7 @@ class NinjaCursorForWindow {
 					if (datumElement) {
 						const curTop = datumElement.getBoundingClientRect().top;
 						const diff = curTop - datumTop;
-						root.style.setProperty("--cursor-offset-y", `${diff}px`);
+						styleRoot.style.setProperty("--cursor-offset-y", `${diff}px`);
 						if (last === false || last != diff) {
 							requestAnimationFrame(() => applyWheelScroll(diff));
 						} else if (last == diff) {
