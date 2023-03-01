@@ -80,7 +80,8 @@ class NinjaCursorForWindow {
 				textRange.setEndAfter(range.startContainer);
 				let textRect = textRange.getBoundingClientRect();
 				if (textRect.x == 0 && textRect.y == 0) {
-					textRange.setStart(range.endContainer, range.endOffset - 1);
+					const startEndOffset = range.endOffset - 1 < 0 ? 0 : range.endOffset - 1;
+					textRange.setStart(range.endContainer, startEndOffset);
 					textRange.setEnd(range.endContainer, range.endOffset);
 					const textRects = textRange.getClientRects();
 					const tempRect = textRects.item(textRects.length - 1);
