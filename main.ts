@@ -1,4 +1,4 @@
-import { App, Plugin } from "obsidian";
+import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
 
 function waitForReflowComplete() {
 	return new Promise((res) => {
@@ -15,9 +15,11 @@ class NinjaCursorForWindow {
 	app: App;
 	bufferedDocument: Document;
 	bufferedWindow: Window;
+	plugin: NinjaCursorPlugin;
 
-	constructor(app: App, aw: Window, ad: Document, registerDomEvent: CallableFunction) {
-		this.app = app;
+	constructor(plugin: NinjaCursorPlugin, aw: Window, ad: Document, registerDomEvent: CallableFunction) {
+		this.plugin = plugin;
+		this.app = plugin.app;
 		// buffering
 		this.bufferedWindow = aw;
 		this.bufferedDocument = ad;
@@ -41,6 +43,16 @@ class NinjaCursorForWindow {
 			processing = false;
 		}
 		const __moveCursor = async (e?: Event, noAnimate?: boolean) => {
+			if ([
+				!this.plugin.settings.reactToContentEditable && !this.plugin.settings.reactToInputElement && !this.plugin.settings.reactToVimMode,
+				this.plugin.settings.reactToContentEditable && e && e.target instanceof HTMLElement && e.target.isContentEditable,
+				this.plugin.settings.reactToInputElement && e && e.target instanceof HTMLElement && e.target.tagName == "INPUT",
+				this.plugin.settings.reactToVimMode && e && e.target instanceof HTMLElement && e.target.closest(".cm-vimMode")
+			].every(e => !e)) {
+				// When anything configured and no matched elements.
+				// At here, do not hide the cursor for the smoother animation.
+				return;
+			}
 			if (e && e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.tagName == "INPUT")) {
 				// If it caused by clicking an element and it is editable.
 				datumElement = e.target;
@@ -198,14 +210,16 @@ class NinjaCursorForWindow {
 export default class NinjaCursorPlugin extends Plugin {
 
 	Cursors: NinjaCursorForWindow[] = [];
+	settings: NinjaCursorSettings;
 
 	async onload() {
+		await this.loadSettings();
 
 		this.registerEvent(this.app.workspace.on("window-open", (win) => {
 			console.log("Open by window-open")
 			const exist = this.Cursors.find(e => e.bufferedWindow == win.win);
 			if (!exist) {
-				const w = new NinjaCursorForWindow(app, win.win, win.doc, this.registerDomEvent.bind(this));
+				const w = new NinjaCursorForWindow(this, win.win, win.doc, this.registerDomEvent.bind(this));
 				this.Cursors.push(w);
 			}
 		}));
@@ -218,8 +232,9 @@ export default class NinjaCursorPlugin extends Plugin {
 		}));
 
 		console.log("Open by init")
-		const w = new NinjaCursorForWindow(app, window, document, this.registerDomEvent.bind(this));
+		const w = new NinjaCursorForWindow(this, window, document, this.registerDomEvent.bind(this));
 		this.Cursors.push(w);
+		this.addSettingTab(new ObsidianLiveSyncSettingTab(this.app, this));
 	}
 
 	onunload() {
@@ -228,7 +243,71 @@ export default class NinjaCursorPlugin extends Plugin {
 		}
 	}
 
-	async loadSettings() { }
+	async loadSettings() {
+		const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()) as NinjaCursorSettings;
+		this.settings = settings;
+	}
 
-	async saveSettings() { }
+	async saveSettings() {
+		const settings = { ...this.settings };
+		await this.saveData(settings);
+	}
 }
+
+export class ObsidianLiveSyncSettingTab extends PluginSettingTab {
+	plugin: NinjaCursorPlugin;
+	selectedScreen = "";
+
+	constructor(app: App, plugin: NinjaCursorPlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+	display(): void {
+		const { containerEl } = this;
+
+		containerEl.empty();
+
+		containerEl.createEl('h2', { text: 'Settings for Ninja-cursor' });
+		containerEl.createEl('h3', { text: 'React to interactions on limited elements' });
+		containerEl.createDiv("", el => {
+			el.textContent = "If nothing is configured, react to all.";
+		});
+
+		new Setting(containerEl)
+			.setName('React to editor-ish elements')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.reactToContentEditable)
+				.onChange(async (value) => {
+					this.plugin.settings.reactToContentEditable = value;
+					await this.plugin.saveSettings();
+				}));
+		new Setting(containerEl)
+			.setName('React to plain-text elements')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.reactToInputElement)
+				.onChange(async (value) => {
+					this.plugin.settings.reactToInputElement = value;
+					await this.plugin.saveSettings();
+				}));
+		new Setting(containerEl)
+			.setName('React to the editor which in a vim-mode')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.reactToVimMode)
+				.onChange(async (value) => {
+					this.plugin.settings.reactToVimMode = value;
+					await this.plugin.saveSettings();
+				}));
+	}
+}
+
+
+type NinjaCursorSettings = {
+	reactToContentEditable: boolean,
+	reactToVimMode: boolean,
+	reactToInputElement: boolean,
+}
+export const DEFAULT_SETTINGS: NinjaCursorSettings = {
+	reactToContentEditable: false,
+	reactToVimMode: false,
+	reactToInputElement: false,
+};
