@@ -29,6 +29,7 @@
 	opacity: 0;
 	pointer-events: none;
 	visibility: var(--cursor-visibility);
+	will-change: transform, opacity, height, width, transform-origin, background-color;
 }
 
 .x-cursor:after {
@@ -42,6 +43,7 @@
 	transform-origin: 4px center;
 	opacity: 0.5;
 	pointer-events: none;
+	will-change: transform, opacity, height, width, transform-origin, background-color;
 }
 
 .x-cursor0 {
