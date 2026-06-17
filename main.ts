@@ -76,14 +76,12 @@ class NinjaCursorForWindow {
 				datumTop = datumElement.getBoundingClientRect().top;
 				const selection = aw.getSelection();
 				if (!selection) {
-					console.log("Could not find selection");
 					return;
 				}
 				if (selection.rangeCount == 0) return;
 				const range = selection.getRangeAt(0);
 				let rect = range?.getBoundingClientRect();
 				if (!rect) {
-					console.log("Could not find range");
 					return;
 				}
 				if (rect.x == 0 && rect.y == 0) {
@@ -98,7 +96,6 @@ class NinjaCursorForWindow {
 						const textRects = textRange.getClientRects();
 						const tempRect = textRects.item(textRects.length - 1);
 						if (!tempRect) {
-							console.log("Could not found");
 							return;
 						}
 						textRect = tempRect;
@@ -148,12 +145,11 @@ class NinjaCursorForWindow {
 				}
 				// I have not remembered why I have updated datumTop here.
 				// datumTop = datumElement.getBoundingClientRect().top;
-				aw.requestAnimationFrame((time) => {
+				aw.requestAnimationFrame(() => {
 					this.cursorElement.className = `x-cursor x-cursor${this.styleCount}`
 					this.lastPos = rect;
 				});
-			} catch (ex) {
-				console.log(ex);
+			} catch {
 				//NO OP.
 			}
 		};
@@ -163,27 +159,26 @@ class NinjaCursorForWindow {
 		const eventNames = ["keydown", "mousedown", "touchend", ...(supportVIMMode ? ["keyup", "mouseup", "touchstart"] : [])];
 		for (const event of eventNames) {
 			registerDomEvent(aw, event, (ev: Event) => {
-				moveCursor(ev);
+				void moveCursor(ev);
 			});
 		}
 		let triggered = false;
 		// Handles scroll till scroll is finish.
 		const applyWheelScroll = (last?: number | boolean) => {
 			if (!triggered) {
-				requestAnimationFrame(() => {
+				aw.requestAnimationFrame(() => {
 					if (datumElement) {
 						try {
 							const curTop = datumElement.getBoundingClientRect().top;
 							const diff = curTop - datumTop;
 							styleRoot.style.setProperty("--cursor-offset-y", `${diff}px`);
 							if (last === false || last != diff) {
-								requestAnimationFrame(() => applyWheelScroll(diff));
+								aw.requestAnimationFrame(() => applyWheelScroll(diff));
 							} else if (last == diff) {
-								moveCursor(undefined, true);
+								void moveCursor(undefined, true);
 							}
-						} catch (ex) {
+						} catch {
 							// NO OP.
-							console.log(ex);
 						}
 					}
 					triggered = false;
@@ -191,7 +186,7 @@ class NinjaCursorForWindow {
 				triggered = true;
 			}
 		}
-		registerDomEvent(aw, "wheel", (e: WheelEvent) => {
+		registerDomEvent(aw, "wheel", () => {
 			applyWheelScroll(false);
 		});
 	}
@@ -213,11 +208,14 @@ export default class NinjaCursorPlugin extends Plugin {
 	Cursors: NinjaCursorForWindow[] = [];
 	settings: NinjaCursorSettings;
 
-	async onload() {
+	onload(): void {
+		void this.onloadAsync();
+	}
+
+	async onloadAsync() {
 		await this.loadSettings();
 
 		this.registerEvent(this.app.workspace.on("window-open", (win) => {
-			console.log("Open by window-open")
 			const exist = this.Cursors.find(e => e.bufferedWindow == win.win);
 			if (!exist) {
 				const w = new NinjaCursorForWindow(this, win.win, win.doc, this.registerDomEvent.bind(this));
@@ -232,8 +230,7 @@ export default class NinjaCursorPlugin extends Plugin {
 			}
 		}));
 
-		console.log("Open by init")
-		const w = new NinjaCursorForWindow(this, window, document, this.registerDomEvent.bind(this));
+		const w = new NinjaCursorForWindow(this, window, activeDocument, this.registerDomEvent.bind(this));
 		this.Cursors.push(w);
 		this.addSettingTab(new ObsidianLiveSyncSettingTab(this.app, this));
 	}
@@ -268,8 +265,8 @@ export class ObsidianLiveSyncSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Settings for Ninja-cursor' });
-		containerEl.createEl('h3', { text: 'React to interactions on limited elements' });
+		new Setting(containerEl).setName('Ninja-cursor').setHeading();
+		new Setting(containerEl).setName('React to interactions on limited elements').setHeading();
 		containerEl.createDiv("", el => {
 			el.textContent = "If nothing is configured, react to all.";
 		});

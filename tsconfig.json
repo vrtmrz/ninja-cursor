@@ -11,6 +11,7 @@
     "importHelpers": false,
     "isolatedModules": true,
     "strictNullChecks": true,
+    "skipLibCheck": true,
     "lib": [
       "ES2018",
       "DOM",
@@ -21,5 +22,9 @@
   },
   "include": [
     "**/*.ts"
+  ],
+  "exclude": [
+    "utilsdeno",
+    "node_modules"
   ]
 }
